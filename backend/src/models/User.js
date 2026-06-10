@@ -13,21 +13,12 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// ✅ CORRECT pre-save hook – note the 'next' parameter and that it's a standard function, not an arrow function
-userSchema.pre("save", function (next) {
-  // Using function() to bind 'this' correctly
-  if (!this.isModified("password")) {
-    return;
-  }
-
-  // Use bcrypt synchronously or with promises
-  bcrypt.genSalt(10, (err, salt) => {
-    if (err) return next(err);
-    bcrypt.hash(this.password, salt, (err, hash) => {
-      if (err) return next(err);
-      this.password = hash;
-    });
-  });
+// ✅ FIXED: async/await so next() is always called
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Instance method to check password
